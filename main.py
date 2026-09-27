@@ -1,0 +1,87 @@
+import flet as ft
+
+def main(page: ft.Page):
+
+    page.window.width = 400
+    page.window.height = 700
+    page.title = "Vital"
+    page.bgcolor = "#0B191E"
+    page.scroll = ft.ScrollMode.AUTO
+
+    nome = "Mundo!"
+    status_padrao = "Tudo parece bem"
+    bpm = "71"
+    oxigenio = "98"
+    temperatura = "36,6"
+
+    txt_nome = ft.Text(f"Olá, {nome}", size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE)
+    txt_subtitulo = ft.Text("Veja como seu corpo está hoje.", size=14, color=ft.Colors.WHITE54)
+    
+    txt_status = ft.Text(
+        f"Status: {status_padrao}", 
+        size=16, 
+        weight=ft.FontWeight.BOLD, 
+        color=ft.Colors.GREEN_400
+    )
+
+    txt_bpm = ft.Text(f"Frequência cardíaca: {bpm} bpm", color=ft.Colors.WHITE)
+    txt_oxigenio = ft.Text(f"Saturação de O2: {oxigenio}%", color=ft.Colors.WHITE)
+    txt_temperatura = ft.Text(f"Temperatura: {temperatura} °C", color=ft.Colors.WHITE)
+
+
+    def verificar_sinais(e):
+        # Atualiza os textos dos sinais
+        txt_nome.value = f"Olá, {input_nome.value}" if input_nome.value else "Olá"
+        txt_bpm.value = f"Frequência cardíaca: {input_bpm.value} bpm"
+        txt_oxigenio.value = f"Saturação de O2: {input_oxigenio.value}%"
+        txt_temperatura.value = f"Temperatura: {input_temperatura.value} °C"
+
+        alerta = False
+
+
+        try:
+            val_bpm = float(input_bpm.value.replace(",", "."))
+            val_o2 = float(input_oxigenio.value.replace(",", "."))
+            val_temp = float(input_temperatura.value.replace(",", "."))
+
+            if val_bpm < 60 or val_bpm > 100 or val_o2 < 95 or val_temp < 35.0 or val_temp > 37.5:
+                alerta = True
+
+        except ValueError:
+
+            pass
+
+
+        if alerta:
+            txt_status.value = "Status: ALERTA! CHAME UM MÉDICO!"
+            txt_status.color = ft.Colors.RED_400
+        else:
+            txt_status.value = f"Status: {status_padrao}"
+            txt_status.color = ft.Colors.GREEN_400
+
+        page.update()
+
+#temporario:
+    input_nome = ft.TextField(label="Nome", value=nome, on_change=verificar_sinais)
+    input_bpm = ft.TextField(label="BPM (Normal: 60-100)", value=bpm, on_change=verificar_sinais)
+    input_oxigenio = ft.TextField(label="O2 % (Normal: >=95)", value=oxigenio, on_change=verificar_sinais)
+    input_temperatura = ft.TextField(label="Temp °C (Normal: 35.0-37.5)", value=temperatura, on_change=verificar_sinais)
+
+
+    page.add(
+        txt_nome,
+        txt_subtitulo,
+        ft.Divider(color=ft.Colors.WHITE24),
+        txt_status,
+        txt_bpm,
+        txt_oxigenio,
+        txt_temperatura,
+        ft.Divider(color=ft.Colors.WHITE24),
+        ft.Text("Temporario (Valores virão do sensor)", weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE70),
+        input_nome,
+        input_bpm,
+        input_oxigenio,
+        input_temperatura
+    )
+
+ft.app(target=main) 
