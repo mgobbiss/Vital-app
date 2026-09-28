@@ -29,9 +29,48 @@ def main(page: ft.Page):
     txt_temperatura = ft.Text(f"Temperatura: {temperatura} °C", color=ft.Colors.WHITE)
 
 
-    def verificar_sinais(e):
+    def toggle_sintoma(e):
+        btn = e.control
+        btn.selected = not btn.selected
+
+        if btn.selected:
+            btn.style = ft.ButtonStyle(
+                color=ft.Colors.WHITE,
+                bgcolor=ft.Colors.RED_700 if btn.grave else ft.Colors.BLUE_700,
+                side=ft.BorderSide(1, ft.Colors.RED_400 if btn.grave else ft.Colors.BLUE_400),
+            )
+        else:
+            btn.style = ft.ButtonStyle(
+                color=ft.Colors.WHITE70,
+                bgcolor=None,
+                side=ft.BorderSide(1, ft.Colors.WHITE24),
+            )
+
+        verificar_sinais(e)
+
+
+    def criar_botao_sintoma(texto, grave=False):
+        btn = ft.OutlinedButton(
+            text=texto,
+            style=ft.ButtonStyle(
+                color=ft.Colors.WHITE70,
+                side=ft.BorderSide(1, ft.Colors.WHITE24),
+            ),
+            on_click=toggle_sintoma
+        )
+        btn.selected = False
+        btn.grave = grave
+        return btn
+
+
+    btn_dor_cabeca = criar_botao_sintoma("Dor de cabeça", grave=False)
+    btn_cansaco = criar_botao_sintoma("Cansaço", grave=False)
+    btn_falta_ar = criar_botao_sintoma("Falta de ar", grave=True)
+    btn_palpitacoes = criar_botao_sintoma("Palpitações", grave=True)
+
+    def verificar_sinais(e=None):
         # Atualiza os textos dos sinais
-        txt_nome.value = f"Olá, {input_nome.value}" if input_nome.value else "Olá"
+        txt_nome.value = f"Olá, {nome}"
         txt_bpm.value = f"Frequência cardíaca: {input_bpm.value} bpm"
         txt_oxigenio.value = f"Saturação de O2: {input_oxigenio.value}%"
         txt_temperatura.value = f"Temperatura: {input_temperatura.value} °C"
@@ -39,6 +78,10 @@ def main(page: ft.Page):
         alerta = False
 
 
+        if btn_falta_ar.selected or btn_palpitacoes.selected:
+            alerta = True
+
+        # Checagem dos sinais vitais
         try:
             val_bpm = float(input_bpm.value.replace(",", "."))
             val_o2 = float(input_oxigenio.value.replace(",", "."))
@@ -48,9 +91,7 @@ def main(page: ft.Page):
                 alerta = True
 
         except ValueError:
-
             pass
-
 
         if alerta:
             txt_status.value = "Status: ALERTA! CHAME UM MÉDICO!"
@@ -61,13 +102,11 @@ def main(page: ft.Page):
 
         page.update()
 
-#temporario:
-    input_nome = ft.TextField(label="Nome", value=nome, on_change=verificar_sinais)
+######################
     input_bpm = ft.TextField(label="BPM (Normal: 60-100)", value=bpm, on_change=verificar_sinais)
     input_oxigenio = ft.TextField(label="O2 % (Normal: >=95)", value=oxigenio, on_change=verificar_sinais)
     input_temperatura = ft.TextField(label="Temp °C (Normal: 35.0-37.5)", value=temperatura, on_change=verificar_sinais)
-
-
+######################
     page.add(
         txt_nome,
         txt_subtitulo,
@@ -77,11 +116,23 @@ def main(page: ft.Page):
         txt_oxigenio,
         txt_temperatura,
         ft.Divider(color=ft.Colors.WHITE24),
+        ft.Text("Sintomas atuais:", weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+        ft.Row(
+            wrap=True,
+            spacing=8,
+            run_spacing=8,
+            controls=[
+                btn_dor_cabeca,
+                btn_cansaco,
+                btn_falta_ar,
+                btn_palpitacoes,
+            ]
+        ),
+        ft.Divider(color=ft.Colors.WHITE24),
         ft.Text("Temporario (Valores virão do sensor)", weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE70),
-        input_nome,
         input_bpm,
         input_oxigenio,
         input_temperatura
     )
 
-ft.app(target=main) 
+ft.app(target=main)
