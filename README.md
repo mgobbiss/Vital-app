@@ -1,3 +1,3 @@
 requirements 
-Python3
+Python3,
 Flet < 0.25.0
