@@ -1,0 +1,8 @@
+// Exemplo em C++ (Arduino/ESP32)
+int bpm = 75;
+int oxigenio = 98;
+
+Serial.print(bpm);
+Serial.print(",");
+Serial.println(oxigenio); // Exemplo enviado: "75,98\n"
+delay(1000);
