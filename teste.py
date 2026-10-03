@@ -1,47 +1,47 @@
-import threading
+import random
 import time
+import threading
 import flet as ft
-import serial  # pip install pyserial
-
-# Configure a porta serial e a velocidade (baudrate) de acordo com seu microcontrolador (Arduino, ESP32, etc.)
-PORTA_SERIAL = "COM14"  # No Linux/Mac use algo como '/dev/ttyUSB0' ou '/dev/ttyACM0'
-BAUDRATE = 9600
-
 
 def main(page: ft.Page):
+
     page.window.width = 400
     page.window.height = 700
     page.title = "Vital"
     page.bgcolor = "#0B191E"
     page.scroll = ft.ScrollMode.AUTO
 
-    nome = "Mundo!"
+    
+    texto_checkbox = "Concordo estar usando um Aplicativo em fases de teste e que os dados apresentados não substituem avaliação médica."
+
     status_padrao = "Tudo parece bem"
-    bpm = "71"
-    oxigenio = "98"
-    temperatura = "36,6"
 
-    txt_nome = ft.Text(
-        f"Olá, {nome}", size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE
-    )
-    txt_subtitulo = ft.Text(
-        "Veja como seu corpo está hoje.", size=14, color=ft.Colors.WHITE54
-    )
+def logout(page: ft.Page):
+    page.controls.clear()
 
+    # Função para sortear valores iniciais saudáveis
+    def gerar_sinais_saudaveis():
+        bpm_val = random.randint(65, 85)
+        o2_val = random.randint(96, 99)
+        temp_val = round(random.uniform(36.2, 36.8), 1)
+        return str(bpm_val), str(o2_val), str(temp_val).replace(".", ",")
+
+    bpm, oxigenio, temperatura = gerar_sinais_saudaveis()
+
+    
+    txt_nome = ft.Text("Olá, Usuário", size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE)
+    txt_subtitulo = ft.Text("Veja como seu corpo está hoje.", size=14, color=ft.Colors.WHITE54)
+    
     txt_status = ft.Text(
-        f"Status: {status_padrao}",
-        size=16,
-        weight=ft.FontWeight.BOLD,
-        color=ft.Colors.GREEN_400,
+        f"Status: {status_padrao}", 
+        size=16, 
+        weight=ft.FontWeight.BOLD, 
+        color=ft.Colors.GREEN_400
     )
 
     txt_bpm = ft.Text(f"Frequência cardíaca: {bpm} bpm", color=ft.Colors.WHITE)
-    txt_oxigenio = ft.Text(
-        f"Saturação de O2: {oxigenio}%", color=ft.Colors.WHITE
-    )
-    txt_temperatura = ft.Text(
-        f"Temperatura: {temperatura} °C", color=ft.Colors.WHITE
-    )
+    txt_oxigenio = ft.Text(f"Saturação de O2: {oxigenio}%", color=ft.Colors.WHITE)
+    txt_temperatura = ft.Text(f"Temperatura: {temperatura} °C", color=ft.Colors.WHITE)
 
     def toggle_sintoma(e):
         btn = e.control
@@ -51,9 +51,7 @@ def main(page: ft.Page):
             btn.style = ft.ButtonStyle(
                 color=ft.Colors.WHITE,
                 bgcolor=ft.Colors.RED_700 if btn.grave else ft.Colors.BLUE_700,
-                side=ft.BorderSide(
-                    1, ft.Colors.RED_400 if btn.grave else ft.Colors.BLUE_400
-                ),
+                side=ft.BorderSide(1, ft.Colors.RED_400 if btn.grave else ft.Colors.BLUE_400),
             )
         else:
             btn.style = ft.ButtonStyle(
@@ -71,7 +69,7 @@ def main(page: ft.Page):
                 color=ft.Colors.WHITE70,
                 side=ft.BorderSide(1, ft.Colors.WHITE24),
             ),
-            on_click=toggle_sintoma,
+            on_click=toggle_sintoma
         )
         btn.selected = False
         btn.grave = grave
@@ -83,36 +81,41 @@ def main(page: ft.Page):
     btn_palpitacoes = criar_botao_sintoma("Palpitações", grave=True)
 
     def verificar_sinais(e=None):
-        txt_nome.value = f"Olá, {nome}"
         txt_bpm.value = f"Frequência cardíaca: {input_bpm.value} bpm"
         txt_oxigenio.value = f"Saturação de O2: {input_oxigenio.value}%"
         txt_temperatura.value = f"Temperatura: {input_temperatura.value} °C"
 
-        alerta = False
+        motivos = []
 
-        if btn_falta_ar.selected or btn_palpitacoes.selected:
-            alerta = True
+        if btn_falta_ar.selected:
+            motivos.append("Falta de ar")
+        if btn_palpitacoes.selected:
+            motivos.append("Palpitações")
 
-        # Checagem dos sinais vitais
         try:
             val_bpm = float(input_bpm.value.replace(",", "."))
             val_o2 = float(input_oxigenio.value.replace(",", "."))
             val_temp = float(input_temperatura.value.replace(",", "."))
 
-            if (
-                val_bpm < 60
-                or val_bpm > 100
-                or val_o2 < 95
-                or val_temp < 35.0
-                or val_temp > 37.5
-            ):
-                alerta = True
+            if val_bpm < 60:
+                motivos.append(f"BPM baixo ({int(val_bpm)})")
+            elif val_bpm > 100:
+                motivos.append(f"BPM alto ({int(val_bpm)})")
+
+            if val_o2 < 95:
+                motivos.append(f"Saturação de O2 baixa ({int(val_o2)}%)")
+
+            if val_temp < 35.0:
+                motivos.append(f"Hipotermia ({val_temp:.1f}°C)")
+            elif val_temp > 37.5:
+                motivos.append(f"Febre ({val_temp:.1f}°C)")
 
         except ValueError:
             pass
 
-        if alerta:
-            txt_status.value = "Status: ALERTA! CHAME UM MÉDICO!"
+        if motivos:
+            detalhes = ", ".join(motivos)
+            txt_status.value = f"Status: ALERTA! CHAME UM MÉDICO!\nMotivo(s): {detalhes}"
             txt_status.color = ft.Colors.RED_400
         else:
             txt_status.value = f"Status: {status_padrao}"
@@ -120,86 +123,157 @@ def main(page: ft.Page):
 
         page.update()
 
-    input_bpm = ft.TextField(
-        label="BPM (Normal: 60-100)", value=bpm, on_change=verificar_sinais
-    )
-    input_oxigenio = ft.TextField(
-        label="O2 % (Normal: >=95)", value=oxigenio, on_change=verificar_sinais
-    )
-    input_temperatura = ft.TextField(
-        label="Temp °C (Normal: 35.0-37.5)",
-        value=temperatura,
-        on_change=verificar_sinais,
+    input_bpm = ft.TextField(label="BPM (Normal: 60-100)", value=bpm, on_change=verificar_sinais)
+    input_oxigenio = ft.TextField(label="O2 % (Normal: >=95)", value=oxigenio, on_change=verificar_sinais)
+    input_temperatura = ft.TextField(label="Temp °C (Normal: 35.0-37.5)", value=temperatura, on_change=verificar_sinais)
+
+    container_inputs = ft.Column(
+        visible=False,
+        controls=[
+            ft.Text("Simulador de Sensores (Ajuste Manual)", size=12, color=ft.Colors.WHITE38),
+            input_bpm,
+            input_oxigenio,
+            input_temperatura
+        ]
     )
 
-    page.add(
-        txt_nome,
-        txt_subtitulo,
-        ft.Divider(color=ft.Colors.WHITE24),
-        txt_status,
-        txt_bpm,
-        txt_oxigenio,
-        txt_temperatura,
-        ft.Divider(color=ft.Colors.WHITE24),
-        ft.Text(
-            "Sintomas atuais:",
-            weight=ft.FontWeight.BOLD,
-            color=ft.Colors.WHITE,
+    def alternar_visibilidade_inputs(e):
+        container_inputs.visible = not container_inputs.visible
+        btn_toggle_inputs.text = "Ocultar modo manual" if container_inputs.visible else "⚙ Configuração manual"
+        page.update()
+
+    btn_toggle_inputs = ft.TextButton(
+        text="⚙ Configuração manual",
+        on_click=alternar_visibilidade_inputs,
+        style=ft.ButtonStyle(color=ft.Colors.WHITE38)
+    )
+
+    
+    rodando_simulacao = True
+
+    def simular_variacao_continua():
+        while rodando_simulacao:
+            time.sleep(3)
+            if not container_inputs.visible:
+                try:
+                    cur_bpm = int(input_bpm.value)
+                    cur_o2 = int(input_oxigenio.value)
+                    cur_temp = float(input_temperatura.value.replace(",", "."))
+
+                    novo_bpm = max(55, min(105, cur_bpm + random.choice([-2, -1, 0, 1, 2])))
+                    novo_o2 = max(93, min(100, cur_o2 + random.choice([-1, 0, 0, 1])))
+                    nova_temp = round(max(35.5, min(37.8, cur_temp + random.choice([-0.1, 0.0, 0.1]))), 1)
+
+                    input_bpm.value = str(novo_bpm)
+                    input_oxigenio.value = str(novo_o2)
+                    input_temperatura.value = str(nova_temp).replace(".", ",")
+
+                    verificar_sinais()
+                except ValueError:
+                    pass
+
+    thread_simulacao = threading.Thread(target=simular_variacao_continua, daemon=True)
+
+    # ------------------ CONSTRUÇÃO DAS TELAS ------------------
+
+    
+    main_view = ft.Column(
+        controls=[
+            txt_nome,
+            txt_subtitulo,
+            ft.Divider(color=ft.Colors.WHITE24),
+            txt_status,
+            txt_bpm,
+            txt_oxigenio,
+            txt_temperatura,
+            ft.Divider(color=ft.Colors.WHITE24),
+            ft.Text("Sintomas atuais:", weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+            ft.Row(
+                wrap=True,
+                spacing=8,
+                run_spacing=8,
+                controls=[
+                    btn_dor_cabeca,
+                    btn_cansaco,
+                    btn_falta_ar,
+                    btn_palpitacoes,
+                ]
+            ),
+            ft.Divider(color=ft.Colors.WHITE10),
+            ft.Container(
+                content=ft.Column(
+                    controls=[
+                        btn_toggle_inputs,
+                        container_inputs
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER
+                ),
+                alignment=ft.alignment.center
+            )
+        ]
+    )
+
+    
+    input_login_nome = ft.TextField(
+        label="Nome ou Usuário", 
+        value="Nome",
+        color=ft.Colors.WHITE,
+        border_color=ft.Colors.WHITE24
+    )
+    input_login_senha = ft.TextField(
+        label="Senha", 
+        password=True, 
+        can_reveal_password=True,
+        color=ft.Colors.WHITE,
+        border_color=ft.Colors.WHITE24
+    )
+    chk_termos = ft.Checkbox(
+        label=texto_checkbox, 
+        value=False,
+        label_style=ft.TextStyle(color=ft.Colors.WHITE70, size=12)
+    )
+
+    def realizar_login(e):
+        nome_digitado = input_login_nome.value.strip() or "Usuário"
+        txt_nome.value = f"Olá, {nome_digitado}"
+        
+        
+        page.controls.clear()
+        page.add(main_view)
+        page.update()
+
+        
+        if not thread_simulacao.is_alive():
+            thread_simulacao.start()
+
+    btn_entrar = ft.FilledButton(
+        text="Entrar",
+        on_click=realizar_login,
+        style=ft.ButtonStyle(
+            bgcolor=ft.Colors.BLUE_700,
+            color=ft.Colors.WHITE
         ),
-        ft.Row(
-            wrap=True,
-            spacing=8,
-            run_spacing=8,
-            controls=[
-                btn_dor_cabeca,
-                btn_cansaco,
-                btn_falta_ar,
-                btn_palpitacoes,
-            ],
-        ),
-        ft.Divider(color=ft.Colors.WHITE24),
-        ft.Text(
-            "Leitura do Sensor (Serial)",
-            weight=ft.FontWeight.BOLD,
-            color=ft.Colors.WHITE70,
-        ),
-        input_bpm,
-        input_oxigenio,
-        input_temperatura,
+        width=400
     )
 
-    # --- LEITURA DA PORTA SERIAL EM SEGUNDO PLANO ---
-    def ler_serial():
-        try:
-            ser = serial.Serial(PORTA_SERIAL, BAUDRATE, timeout=1)
-            time.sleep(2)  # Tempo para inicializar a conexão serial
+    
+    login_view = ft.Column(
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=15,
+        controls=[
+            ft.Container(height=40),
+            ft.Text("Vital", size=36, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_400),
+            ft.Text("Acesse sua conta para continuar", size=14, color=ft.Colors.WHITE54),
+            ft.Container(height=20),
+            input_login_nome,
+            input_login_senha,
+            chk_termos,
+            ft.Container(height=10),
+            btn_entrar
+        ]
+    )
 
-            while True:
-                if ser.in_waiting > 0:
-                    # Lê a linha enviada pelo microcontrolador (ex: "75,98\n")
-                    linha = ser.readline().decode("utf-8").strip()
-
-                    # Espera que o sensor envie os dados separados por vírgula
-                    dados = linha.split(",")
-
-                    if len(dados) == 2:
-                        bpm_sensor, oxigenio_sensor = dados[0], dados[1]
-
-                        # Atualiza os valores dos TextFields no Flet
-                        input_bpm.value = bpm_sensor
-                        input_oxigenio.value = oxigenio_sensor
-
-                        # Recalcula os status e atualiza a interface
-                        verificar_sinais()
-
-        except serial.SerialException as err:
-            print(f"Erro na conexão Serial: {err}")
-        except Exception as e:
-            print(f"Erro inesperado na leitura: {e}")
-
-    # Inicia a thread paralela para não congelar a interface visual
-    thread_serial = threading.Thread(target=ler_serial, daemon=True)
-    thread_serial.start()
-
+    # Inicializa o app na tela de login
+    page.add(login_view)
 
 ft.app(target=main)
