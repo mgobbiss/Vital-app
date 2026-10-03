@@ -171,14 +171,25 @@ def logout(page: ft.Page):
                     verificar_sinais()
                 except ValueError:
                     pass
+def logout(e)
+    page.controls.clear()
+    page.update()
+btn_logout = ft.TextButton(
+    text="<-",
+    on_click=logout(),
+    style=ft.ButtonStyle(color=ft.Colors.White38)
 
     thread_simulacao = threading.Thread(target=simular_variacao_continua, daemon=True)
+
+    
 
     # ------------------ CONSTRUÇÃO DAS TELAS ------------------
 
     
     main_view = ft.Column(
         controls=[
+            btn_logout,
+            ft.Divider(color=ft.Colors.WHITE24),
             txt_nome,
             txt_subtitulo,
             ft.Divider(color=ft.Colors.WHITE24),
