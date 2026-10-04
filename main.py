@@ -6,11 +6,12 @@ import threading
 import requests
 import flet as ft
 
-
+# ---------------- CONFIGURAÇÃO E PERSISTÊNCIA ----------------
 CONFIG_FILE = "config_telegram.json"
-TELEGRAM_BOT_TOKEN = "8893504897:AAFBfBgCvtWmrkyuYAKMSHhM1KPTGyse0h0" 
+TELEGRAM_BOT_TOKEN = "8893504897:AAFBfBgCvtWmrkyuYAKMSHhM1KPTGyse0h0"  # Substitua pelo Token do @BotFather
 
 def carregar_chat_id():
+    """Carrega o Chat ID salvo no arquivo JSON local."""
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
@@ -21,6 +22,7 @@ def carregar_chat_id():
     return ""
 
 def salvar_chat_id(chat_id):
+    """Salva o Chat ID no arquivo JSON local de forma persistente."""
     try:
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump({"chat_id": chat_id}, f, indent=4)
@@ -29,6 +31,7 @@ def salvar_chat_id(chat_id):
         print(f"Erro ao salvar arquivo de config: {e}")
 
 def enviar_telegram_alerta(mensagem, chat_id_destino):
+    """Envia o alerta em background via API do Telegram."""
     def _enviar():
         chat_id_limpo = chat_id_destino.strip()
         if not chat_id_limpo:
@@ -54,18 +57,15 @@ def enviar_telegram_alerta(mensagem, chat_id_destino):
 
     threading.Thread(target=_enviar, daemon=True).start()
 
-
+# ---------------- APLICAÇÃO FLET ----------------
 
 def main(page: ft.Page):
 
-    page.window.width = 400
-    page.window.height = 780
     page.title = "Vital"
     page.bgcolor = "#0B191E"
     page.scroll = ft.ScrollMode.AUTO
 
     em_alerta_anterior = False
-    
     telegram_chat_id_salvo = carregar_chat_id()
 
     texto_termos_completo = (
@@ -104,13 +104,13 @@ def main(page: ft.Page):
 
     def toggle_sintoma(e):
         btn = e.control
-        btn.selected = not btn.selected
+        btn.selected = not getattr(btn, "selected", False)
 
         if btn.selected:
             btn.style = ft.ButtonStyle(
                 color=ft.Colors.WHITE,
-                bgcolor=ft.Colors.RED_700 if btn.grave else ft.Colors.BLUE_700,
-                side=ft.BorderSide(1, ft.Colors.RED_400 if btn.grave else ft.Colors.BLUE_400),
+                bgcolor=ft.Colors.RED_700 if getattr(btn, "grave", False) else ft.Colors.BLUE_700,
+                side=ft.BorderSide(1, ft.Colors.RED_400 if getattr(btn, "grave", False) else ft.Colors.BLUE_400),
             )
         else:
             btn.style = ft.ButtonStyle(
@@ -166,8 +166,8 @@ def main(page: ft.Page):
         sintomas_leves_selecionados = []
 
         for btn in botoes_sintomas:
-            if btn.selected:
-                if btn.grave:
+            if getattr(btn, "selected", False):
+                if getattr(btn, "grave", False):
                     motivos.append(btn.text)
                 else:
                     sintomas_leves_selecionados.append(btn.text)
@@ -220,7 +220,6 @@ def main(page: ft.Page):
         txt_status.value = "Status: ALERTA DE TESTE ENVIADO AO TELEGRAM!"
         txt_status.color = ft.Colors.RED_400
         page.update()
-
 
     btn_panico_admin = ft.FilledButton(
         text="🚨 TESTAR ALERTA NO TELEGRAM",
@@ -318,7 +317,7 @@ def main(page: ft.Page):
                     input_temperatura.value = str(nova_temp).replace(".", ",")
 
                     verificar_sinais()
-                except ValueError:
+                except Exception:
                     pass
 
     def logout(e):
@@ -422,7 +421,7 @@ def main(page: ft.Page):
             ft.TextButton(
                 text="Termos de uso",
                 on_click=ir_para_termos,
-                style=ft.ButtonStyle(color=ft.Colors.BLUE_400, padding=0)
+                style=ft.ButtonStyle(color=ft.Colors.BLUE_400)
             )
         ],
         spacing=0
@@ -442,11 +441,9 @@ def main(page: ft.Page):
         nome_digitado = input_login_nome.value.strip()
         senha_digitada = input_login_senha.value.strip()
 
-        # Verifica se é admin
         is_admin = (nome_digitado == "admin" and senha_digitada == "admin")
         container_admin.visible = is_admin
 
-        # Atualiza o campo com o ID salvo atual
         input_admin_chat_id.value = telegram_chat_id_salvo
 
         exibicao_nome = nome_digitado if nome_digitado else "Usuário"
