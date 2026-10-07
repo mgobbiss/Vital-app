@@ -5,9 +5,14 @@ import time
 import threading
 import requests
 import flet as ft
+import tempfile  # <-- IMPORTANTE: Adicione esta importação
 
-# ---------------- CONFIGURAÇÃO E PERSISTÊNCIA ----------------
-CONFIG_FILE = "config_telegram.json"
+# ---------------- CONFIGURAÇÃO E PERSISTÊNCIA CORRIGIDA PARA ANDROID ----------------
+# Em vez de salvar na pasta local, usamos a pasta temporária do sistema,
+# que sempre tem permissão de escrita no Android.
+NOME_ARQUIVO_CONFIG = "config_telegram.json"
+CONFIG_FILE = os.path.join(tempfile.gettempdir(), NOME_ARQUIVO_CONFIG)
+
 TELEGRAM_BOT_TOKEN = "8893504897:AAFBfBgCvtWmrkyuYAKMSHhM1KPTGyse0h0"  # Substitua pelo Token do @BotFather
 
 def carregar_chat_id():
@@ -61,11 +66,15 @@ def enviar_telegram_alerta(mensagem, chat_id_destino):
 
 def main(page: ft.Page):
 
+    #page.window.width = 400
+    #page.window.height = 780
     page.title = "Vital"
     page.bgcolor = "#0B191E"
     page.scroll = ft.ScrollMode.AUTO
 
     em_alerta_anterior = False
+    
+    # Carrega o Chat ID previamente salvo ao iniciar a aplicação
     telegram_chat_id_salvo = carregar_chat_id()
 
     texto_termos_completo = (
@@ -104,13 +113,13 @@ def main(page: ft.Page):
 
     def toggle_sintoma(e):
         btn = e.control
-        btn.selected = not getattr(btn, "selected", False)
+        btn.selected = not btn.selected
 
         if btn.selected:
             btn.style = ft.ButtonStyle(
                 color=ft.Colors.WHITE,
-                bgcolor=ft.Colors.RED_700 if getattr(btn, "grave", False) else ft.Colors.BLUE_700,
-                side=ft.BorderSide(1, ft.Colors.RED_400 if getattr(btn, "grave", False) else ft.Colors.BLUE_400),
+                bgcolor=ft.Colors.RED_700 if btn.grave else ft.Colors.BLUE_700,
+                side=ft.BorderSide(1, ft.Colors.RED_400 if btn.grave else ft.Colors.BLUE_400),
             )
         else:
             btn.style = ft.ButtonStyle(
@@ -166,8 +175,8 @@ def main(page: ft.Page):
         sintomas_leves_selecionados = []
 
         for btn in botoes_sintomas:
-            if getattr(btn, "selected", False):
-                if getattr(btn, "grave", False):
+            if btn.selected:
+                if btn.grave:
                     motivos.append(btn.text)
                 else:
                     sintomas_leves_selecionados.append(btn.text)
@@ -214,6 +223,7 @@ def main(page: ft.Page):
         page.update()
 
     def disparar_panico_manual(e):
+        """Dispara um alerta imediato no Telegram ao clicar no botão do Admin."""
         msg_emergencia = f"🚨 *PÂNICO (TESTE ADMIN):* Alerta manual disparado por *{input_login_nome.value}*."
         enviar_telegram_alerta(msg_emergencia, telegram_chat_id_salvo)
         
@@ -221,6 +231,7 @@ def main(page: ft.Page):
         txt_status.color = ft.Colors.RED_400
         page.update()
 
+    # Botão de pânico exclusivo do Admin
     btn_panico_admin = ft.FilledButton(
         text="🚨 TESTAR ALERTA NO TELEGRAM",
         on_click=disparar_panico_manual,
@@ -228,6 +239,7 @@ def main(page: ft.Page):
         width=400
     )
 
+    # Função para salvar a alteração do Chat ID diretamente no painel Admin
     def salvar_config_telegram(e):
         nonlocal telegram_chat_id_salvo
         novo_id = input_admin_chat_id.value.strip()
@@ -251,6 +263,7 @@ def main(page: ft.Page):
 
     txt_feedback_save = ft.Text("", color=ft.Colors.GREEN_400, size=12)
 
+    # Simulador manual de sensores
     input_bpm = ft.TextField(label="BPM (Normal: 60-100)", value=bpm, on_change=verificar_sinais)
     input_oxigenio = ft.TextField(label="O2 % (Normal: >=95)", value=oxigenio, on_change=verificar_sinais)
     input_temperatura = ft.TextField(label="Temp °C (Normal: 35.0-37.5)", value=temperatura, on_change=verificar_sinais)
@@ -276,6 +289,7 @@ def main(page: ft.Page):
         style=ft.ButtonStyle(color=ft.Colors.WHITE38)
     )
 
+    # Painel completo do Admin
     container_admin = ft.Container(
         visible=False,
         content=ft.Column(
@@ -317,7 +331,7 @@ def main(page: ft.Page):
                     input_temperatura.value = str(nova_temp).replace(".", ",")
 
                     verificar_sinais()
-                except Exception:
+                except ValueError:
                     pass
 
     def logout(e):
@@ -421,7 +435,7 @@ def main(page: ft.Page):
             ft.TextButton(
                 text="Termos de uso",
                 on_click=ir_para_termos,
-                style=ft.ButtonStyle(color=ft.Colors.BLUE_400)
+                style=ft.ButtonStyle(color=ft.Colors.BLUE_400, padding=0)
             )
         ],
         spacing=0
@@ -441,9 +455,11 @@ def main(page: ft.Page):
         nome_digitado = input_login_nome.value.strip()
         senha_digitada = input_login_senha.value.strip()
 
+        # Verifica se é admin
         is_admin = (nome_digitado == "admin" and senha_digitada == "admin")
         container_admin.visible = is_admin
 
+        # Atualiza o campo com o ID salvo atual
         input_admin_chat_id.value = telegram_chat_id_salvo
 
         exibicao_nome = nome_digitado if nome_digitado else "Usuário"
